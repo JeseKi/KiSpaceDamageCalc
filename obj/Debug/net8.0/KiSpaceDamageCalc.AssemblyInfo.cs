@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KiSpaceDamageCalc")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+021ff0e24180ba5120652329a90d517f73434f80")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c091b85b9a33c4bf8bde9bfb404565eb81590e5")]
 [assembly: System.Reflection.AssemblyProductAttribute("KiSpaceDamageCalc")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KiSpaceDamageCalc")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
