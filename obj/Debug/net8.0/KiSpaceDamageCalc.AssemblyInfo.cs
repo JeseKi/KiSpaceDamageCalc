@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KiSpaceDamageCalc")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+91eb2a907701450675a137a9755b760f5fdfdd96")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7f403aad7d25f8dbc669ff9d511512b6fc0ccc09")]
 [assembly: System.Reflection.AssemblyProductAttribute("KiSpaceDamageCalc")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KiSpaceDamageCalc")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace KiSpaceDamageCalc;
 public static class DamageCalcServer{
     public static int AllPlayersTotalDamage = 0;
     public static bool started = false;
+    public static DateTime StartTime;
+    public static TimeSpan battleDuration;
     public static int EndTime = 0;
     public const int MAX_WAIT_TIME = 60;
     public static bool InReseting = false;
@@ -43,13 +46,14 @@ public static class DamageCalcServer{
             return;
 
         started = true;
-
+        StartTime = DateTime.Now;
         SendStartToClient();
     }
 
     public static void StartReset()
     {
         if (InReseting || !Main.dedServ) return; 
+        battleDuration = DateTime.Now - StartTime;
 
         InReseting = true;
         EndTime = MainSystem.ServerTick;
@@ -63,6 +67,7 @@ public static class DamageCalcServer{
         if (NeedBroadcast())
         {
             InReseting = false;
+            
             Reset();
         }
     }
@@ -77,7 +82,9 @@ public static class DamageCalcServer{
         DisplayDamageStatistics();
         
         AllPlayersTotalDamage = 0;
+        StartTime = DateTime.Now;
         EndTime = 0;
+        battleDuration = TimeSpan.Zero;
         started = false;
         PlayerCurrentLanguages.Clear();
         
@@ -86,7 +93,6 @@ public static class DamageCalcServer{
         PlayersDamaged.Clear();
         PlayersAllDamageDataReceived.Clear();
         PlayerToDamagesourceDamages.Clear();
-        
     }
 
     public static bool NeedBroadcast(){
@@ -121,6 +127,7 @@ public static class DamageCalcServer{
         
         KiLogger.LogOnMutiMode($"========== {MainSystem.GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{MainSystem.GetKiSpaceDamageCalcText("TotalTeamDamage")}: {AllPlayersTotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{MainSystem.GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         
         for (int i = 0; i < playerTotalDamages.Count; i++)
         {
@@ -147,8 +154,42 @@ public static class DamageCalcServer{
                 }
             }
         }
-
         KiLogger.LogOnMutiMode("==========================",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+    }
+
+    private static string FormatBattleTime(TimeSpan duration)
+    {
+        int hours = duration.Hours;
+        int minutes = duration.Minutes;
+        int seconds = duration.Seconds;
+
+        string language = DecideLanguage();
+        bool isChinese = language.StartsWith("zh");
+
+        if (isChinese)
+        {
+            List<string> parts = new List<string>();
+            if (hours > 0)
+                parts.Add($"{hours}小时");
+            if (minutes > 0 || (hours > 0 && seconds > 0))
+                parts.Add($"{minutes}分");
+            if (seconds > 0 || parts.Count == 0)
+                parts.Add($"{seconds}秒");
+                
+            return string.Join("", parts);
+        }
+        else
+        {
+            List<string> parts = new List<string>();
+            if (hours > 0)
+                parts.Add($"{hours}h");
+            if (minutes > 0 || (hours > 0 && seconds > 0))
+                parts.Add($"{minutes}min");
+            if (seconds > 0 || parts.Count == 0)
+                parts.Add($"{seconds}s");
+                
+            return string.Join("", parts);
+        }
     }
 
     private static string DecideLanguage()
@@ -375,7 +416,7 @@ public static class DamageCalcClient
     }
 
     /// <summary>
-    /// 记录客户端玩家是否造成了伤害
+    /// 发送客户端玩家是否造成了伤害
     /// </summary>
     /// <param name="playerName"></param>
     /// <param name="projDamaged"></param>
