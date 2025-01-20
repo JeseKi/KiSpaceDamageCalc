@@ -1,1 +1,4 @@
-
+Display: {
+    DamageStatistics: Damage Statistics
+    TotalTeamDamage: Total Team Damage
+}

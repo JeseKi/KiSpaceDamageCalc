@@ -235,6 +235,7 @@ namespace KiSpaceDamageCalc
             bool logOnMutiMode = false,
             int netMode = -1,
             LogLevel level = LogLevel.INFO,
+            bool logPlatform = true,
             object instanceId = null,
             [CallerFilePath] string callerFilePath = "",
             [CallerLineNumber] int callerLineNumber = 0,
@@ -258,7 +259,7 @@ namespace KiSpaceDamageCalc
             else if (!timeLogger.CanLog) return;
 
             if (logOnMutiMode)
-                LogOnMutiMode(message, actualColor, netMode, logToFile, null, null, true, string.Empty, true, level, callerFilePath, callerLineNumber, callerMemberName);
+                LogOnMutiMode(message, actualColor, netMode, logToFile, null, null, true, string.Empty, true, level ,logPlatform , callerFilePath, callerLineNumber, callerMemberName);
             else if (logInGame)
                 Main.NewText(message, actualColor);
 
@@ -320,7 +321,7 @@ namespace KiSpaceDamageCalc
                 packet.Write(_NetID);
                 msg = $"[SESSION: {_NetID}] {msg}";
             }
-            LogOnMutiMode(msg, color, netMode, logToFile, reader, packet, logServerTick, _NetID, logCodePosition, level, callerFilePath, callerLineNumber, callerMemberName);
+            LogOnMutiMode(msg, color, netMode, logToFile, reader, packet, logServerTick, _NetID, logCodePosition, level,true, callerFilePath, callerLineNumber, callerMemberName);
         }
 
         /// <summary>
@@ -343,6 +344,7 @@ namespace KiSpaceDamageCalc
             string NetID = "",
             bool logCodePosition = true,
             LogLevel level = LogLevel.DEBUG,
+            bool logPlatform = true,
             [CallerFilePath] string callerFilePath = "",
             [CallerLineNumber] int callerLineNumber = 0,
             [CallerMemberName] string callerMemberName = ""
@@ -429,7 +431,8 @@ namespace KiSpaceDamageCalc
             }
             
             if (!canLog) return;
-            msg = netModeStr + msg;
+            if (logPlatform) msg = netModeStr + msg;
+
             NetworkText message = NetworkText.FromLiteral(msg);
             if (logToFile) Log(msg, level);
             ChatHelper.BroadcastChatMessage(message, actualColor);

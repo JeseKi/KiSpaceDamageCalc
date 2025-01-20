@@ -228,3 +228,4 @@ D:\Text\My Games\Terraria\tModLoader\ModSources\KiSpaceDamageCalc\obj\Debug\net8
 D:\Text\My Games\Terraria\tModLoader\ModSources\KiSpaceDamageCalc\obj\Debug\net8.0\refint\KiSpaceDamageCalc.dll
 D:\Text\My Games\Terraria\tModLoader\ModSources\KiSpaceDamageCalc\obj\Debug\net8.0\KiSpaceDamageCalc.pdb
 D:\Text\My Games\Terraria\tModLoader\ModSources\KiSpaceDamageCalc\obj\Debug\net8.0\ref\KiSpaceDamageCalc.dll
+D:\Text\My Games\Terraria\tModLoader\ModSources\KiSpaceDamageCalc\obj\Debug\net8.0\KiSpaceDamageCalc.sourcelink.json

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using KiSpaceDamageCalc.NPCs;
 using KiSpaceDamageCalc.Systems;
 using Terraria.ModLoader;
 
@@ -24,7 +23,9 @@ namespace KiSpaceDamageCalc
             DamageCalc = 0,
             ServerData = 1,
 			StartRecording = 2,
-			EndRecording = 3
+			EndRecording = 3,
+			PlayerDamaged = 4,
+			AllDamageData = 5
         }
 
         public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -33,16 +34,22 @@ namespace KiSpaceDamageCalc
 			switch (msgType)
 			{
 				case NetMessageType.DamageCalc:
-					DamageCalc.ReceiveDamageFromClient(reader);
+					DamageCalcServer.ReceiveDamageFromClient(reader);
 					break;
 				case NetMessageType.ServerData:
 					MainSystem.HandelServerData(msgType, reader, false, out _);
 					break;
 				case NetMessageType.StartRecording:
-					DamageCalc.ReceiveStartFromServer();
+					DamageCalcClient.ReceiveStartFromServer();
 					break;
 				case NetMessageType.EndRecording:
-					DamageCalc.ReceiveEndFromServer();
+					DamageCalcClient.ReceiveEndFromServer();
+					break;
+				case NetMessageType.PlayerDamaged:
+					DamageCalcServer.ReceivePlayerDamaged(reader);
+					break;
+				case NetMessageType.AllDamageData:
+					DamageCalcServer.ReceiveAllDamageDataFromClient(reader);
 					break;
 			}
         }
