@@ -7,17 +7,7 @@ namespace KiSpaceDamageCalc
 {
 	public class KiSpaceDamageCalc : Mod
 	{
-        public static Mod ThisMod => ModLoader.GetMod("KiSpaceDamageCalc");
 		public static string ModRoot => AppContext.BaseDirectory;
-		
-        public static class KiNetmodeID
-        {
-            public const int SinglePlayer = 0;
-            public const int MultiplayerClient = 1;
-            public const int Server = 2;
-            public const int MultiplayerMode = 3;
-            public const int Any = 4;
-        }
         internal enum NetMessageType : byte
         {
             DamageCalc = 0,

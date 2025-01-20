@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 
 using static KiSpaceDamageCalc.KiSpaceDamageCalc;
 using static KiSpaceDamageCalc.Systems.MainSystem;
+using static KiSpaceDamageCalc.Common;
 
 namespace KiSpaceDamageCalc
 {

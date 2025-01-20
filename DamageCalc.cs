@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.Localization;
 using Terraria.ModLoader;
+using static KiSpaceDamageCalc.Common;
 using static KiSpaceDamageCalc.KiSpaceDamageCalc;
 
 namespace KiSpaceDamageCalc;
@@ -62,7 +63,7 @@ public static class DamageCalcServer{
 
     public static void UpdateReset()
     {
-        if (!InReseting) return;
+        if (!InReseting || !Main.dedServ) return;
 
         if (NeedBroadcast())
         {
@@ -125,9 +126,9 @@ public static class DamageCalcServer{
         if (language != LanguageManager.Instance.ActiveCulture.Name)
             LanguageManager.Instance.SetLanguage(language);
         
-        KiLogger.LogOnMutiMode($"========== {MainSystem.GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        KiLogger.LogOnMutiMode($"{MainSystem.GetKiSpaceDamageCalcText("TotalTeamDamage")}: {AllPlayersTotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        KiLogger.LogOnMutiMode($"{MainSystem.GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"========== {GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {AllPlayersTotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         
         for (int i = 0; i < playerTotalDamages.Count; i++)
         {
@@ -144,14 +145,25 @@ public static class DamageCalcServer{
                     .OrderByDescending(x => x.Value)
                     .ToList();
                 
-                for (int j = 0; j < sortedDamages.Count; j++)
-                {
-                    var item = sortedDamages[j];
-                    float itemPercentage = (float)item.Value / player.Value * 100;
-                    string rank = $"#{j + 1}";
-                    KiLogger.LogOnMutiMode($"    {rank} {item.Key}: {item.Value} | {itemPercentage:F1}%", 
-                        rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
-                }
+                    int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
+                    int maxDamageLength = sortedDamages.Max(x => x.Value.ToString().Length);
+
+                    for (int j = 0; j < sortedDamages.Count; j++)
+                    {
+                        var item = sortedDamages[j];
+                        float itemPercentage = (float)item.Value / player.Value * 100;
+                        string rank = $"#{j + 1}".PadRight(3);
+                        string name = PadRightWidth(item.Key, maxNameWidth);
+                        string damage = item.Value.ToString().PadLeft(maxDamageLength);
+                        
+                        KiLogger.LogOnMutiMode(
+                            $"{rank} {name}: {damage} | {itemPercentage:F1}%", 
+                            Color.Red, 
+                            logCodePosition: false, 
+                            logServerTick: false, 
+                            logPlatform: false
+                        );
+                    }
             }
         }
         KiLogger.LogOnMutiMode("==========================",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
@@ -371,7 +383,7 @@ public static class DamageCalcClient
     }
 
     public static void CheckDamaged(){
-        if (Main.dedServ) return;
+        if (Main.dedServ || !started) return;
         
         if (oldDamaged != Damaged)
         {
@@ -472,3 +484,132 @@ public static class DamageCalcClient
     }
     #endregion
 }
+#region 单人的伤害统计
+public static class DamageCalcSinglePlayer
+{
+    public static int TotalDamage = 0;
+    public static bool started = false;
+    public static DateTime StartTime;
+    public static TimeSpan battleDuration;
+    /// <summary>
+    /// 伤害的具体信息
+    /// </summary>
+    public static Dictionary<string, int> DamagesourceDamages = new Dictionary<string, int>();
+    public static void Start(){
+        if (started || !Main.netMode.Equals(KiNetmodeID.SinglePlayer))
+            return;
+
+        started = true;
+        StartTime = DateTime.Now;
+    }
+    public static void AddDamage(int damage){
+        if (!started || Main.dedServ)
+            return;
+
+        TotalDamage += damage;
+    }
+
+    public static void AddDamage(int damage, Projectile proj){
+        if (!started || Main.dedServ)
+            return;
+
+        if (!DamagesourceDamages.ContainsKey(proj.Name))
+            DamagesourceDamages[proj.Name] = 0;
+        
+        DamagesourceDamages[proj.Name] += damage;
+        
+        AddDamage(damage);
+    }
+
+    public static void AddDamage(int damage, Item item){
+        if (!started || Main.dedServ)
+            return;
+
+        if (!DamagesourceDamages.ContainsKey(item.Name))
+            DamagesourceDamages[item.Name] = 0;
+        
+        DamagesourceDamages[item.Name] += damage;
+        
+        AddDamage(damage);
+    }
+    public static void Reset(){
+
+        if (!Main.netMode.Equals(KiNetmodeID.SinglePlayer) || !started) return;
+        battleDuration = DateTime.Now - StartTime;
+        DisplayDamageStatistics();
+        
+        TotalDamage = 0;
+        StartTime = DateTime.Now;
+        battleDuration = TimeSpan.Zero;
+        started = false;
+        DamagesourceDamages.Clear();
+    }
+
+    private static void DisplayDamageStatistics()
+    {        
+        KiLogger.LogOnMutiMode($"========== {GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {TotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        
+        var sortedDamages = DamagesourceDamages
+            .OrderByDescending(x => x.Value)
+            .ToList();
+        
+        int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
+        int maxDamageLength = sortedDamages.Max(x => x.Value.ToString().Length);
+
+        for (int j = 0; j < sortedDamages.Count; j++)
+        {
+            var item = sortedDamages[j];
+            float itemPercentage = (float)item.Value / TotalDamage * 100;
+            string rank = $"#{(j + 1)}".PadRight(3);
+            string name = PadRightWidth(item.Key, maxNameWidth);
+            string damage = item.Value.ToString().PadLeft(maxDamageLength);
+            
+            KiLogger.LogOnMutiMode(
+                $"{rank} {name}: {damage} | {itemPercentage:F1}%", 
+                Color.Red, 
+                logCodePosition: false, 
+                logServerTick: false, 
+                logPlatform: false
+            );
+        }
+        KiLogger.LogOnMutiMode("==========================",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+    }
+
+    private static string FormatBattleTime(TimeSpan duration)
+    {
+        int hours = duration.Hours;
+        int minutes = duration.Minutes;
+        int seconds = duration.Seconds;
+
+        string language = LanguageManager.Instance.ActiveCulture.Name;
+        bool isChinese = language.StartsWith("zh");
+
+        if (isChinese)
+        {
+            List<string> parts = new List<string>();
+            if (hours > 0)
+                parts.Add($"{hours}小时");
+            if (minutes > 0 || (hours > 0 && seconds > 0))
+                parts.Add($"{minutes}分");
+            if (seconds > 0 || parts.Count == 0)
+                parts.Add($"{seconds}秒");
+                
+            return string.Join("", parts);
+        }
+        else
+        {
+            List<string> parts = new List<string>();
+            if (hours > 0)
+                parts.Add($"{hours}h");
+            if (minutes > 0 || (hours > 0 && seconds > 0))
+                parts.Add($"{minutes}min");
+            if (seconds > 0 || parts.Count == 0)
+                parts.Add($"{seconds}s");
+                
+            return string.Join("", parts);
+        }
+    }
+}
+#endregion

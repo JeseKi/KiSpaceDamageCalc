@@ -3,6 +3,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
+using static KiSpaceDamageCalc.Common;
 using static KiSpaceDamageCalc.KiSpaceDamageCalc;
 
 namespace KiSpaceDamageCalc.Systems
@@ -14,10 +15,9 @@ namespace KiSpaceDamageCalc.Systems
         public override void PreUpdateEntities()
         {
             KiLogger.UpdateLogTimer();
-            if (PlayerInBossBattle() && !(DamageCalcServer.started || DamageCalcClient.started))
+            if (PlayerInBossBattle())
             {
-                DamageCalcServer.Start();
-                DamageCalcClient.Start();
+                StartDamageCalc();
             }
             DamageCalcClient.CheckDamaged();
             if (Main.netMode != KiNetmodeID.MultiplayerClient)
@@ -30,26 +30,41 @@ namespace KiSpaceDamageCalc.Systems
 
         public override void PostUpdateNPCs()
         {
-            if (!PlayerInBossBattle() && (DamageCalcServer.started || DamageCalcClient.started))
-            {
-                DamageCalcServer.StartReset();
-                DamageCalcClient.Reset();
-            }
-
             DamageCalcServer.UpdateReset();
+            
+            if (!PlayerInBossBattle())
+            {
+                EndDamageCalc();
+            }
         }
         #region 辅助方法
-        public static bool PlayerInBossBattle()
-        {
-            foreach (NPC npc in Main.npc) {
-                if ((npc.active && npc.boss) || npc.type == NPCID.EaterofWorldsHead) {
-                    return true;
-                }
-            }
-            return false;
-        }
 
-        public static string GetKiSpaceDamageCalcText(string key, params object[] args) => Language.GetTextValue($"Mods.KiSpaceDamageCalc.{key}", args);
+        private void StartDamageCalc() {
+            switch (Main.netMode) {
+                case KiNetmodeID.SinglePlayer:
+                    if (!DamageCalcSinglePlayer.started) DamageCalcSinglePlayer.Start();
+                    break;
+                case KiNetmodeID.MultiplayerClient:
+                    if (!DamageCalcClient.started) DamageCalcClient.Start();
+                    break;
+                case KiNetmodeID.Server:
+                    if (!DamageCalcServer.started) DamageCalcServer.Start();
+                    break;
+            }
+        }
+        private void EndDamageCalc() {
+            switch (Main.netMode) {
+                case KiNetmodeID.SinglePlayer:
+                    if (DamageCalcSinglePlayer.started) DamageCalcSinglePlayer.Reset();
+                    break;
+                case KiNetmodeID.MultiplayerClient:
+                    if (DamageCalcClient.started) DamageCalcClient.Reset();
+                    break;
+                case KiNetmodeID.Server:
+                    if (DamageCalcServer.started) DamageCalcServer.StartReset();
+                    break;
+            }
+        }
         
         #endregion
         #region 同步
