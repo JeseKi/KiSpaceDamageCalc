@@ -10,13 +10,12 @@ namespace KiSpaceDamageCalc
 		public static string ModRoot => AppContext.BaseDirectory;
         internal enum NetMessageType : byte
         {
-            DamageCalc = 0,
-            ServerData = 1,
-			StartRecording = 2,
-			EndRecording = 3,
-			PlayerDamaged = 4,
-			AllDamageData = 5,
-			ClientLanguage = 6
+            ServerData = 0,
+			StartRecording = 1,
+			EndRecording = 2,
+			PlayerDamaged = 3,
+			AllDamageData = 4,
+			ClientLanguage = 5
         }
 
         public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -24,9 +23,6 @@ namespace KiSpaceDamageCalc
 			NetMessageType msgType = (NetMessageType)reader.ReadByte();
 			switch (msgType)
 			{
-				case NetMessageType.DamageCalc:
-					DamageCalcServer.ReceiveTotalDamageFromClient(reader);
-					break;
 				case NetMessageType.ServerData:
 					MainSystem.HandelServerData(msgType, reader, false, out _);
 					break;

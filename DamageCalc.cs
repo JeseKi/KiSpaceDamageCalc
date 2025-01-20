@@ -35,10 +35,6 @@ public static class DamageCalcServer{
     /// </summary>
     public static List<string> PlayersAllDamageDataReceived = new List<string>();
     /// <summary>
-    /// 各玩家造成的总伤害是否已经收到
-    /// </summary>
-    public static List<string> PlayerTotalDamageReceived = new List<string>();
-    /// <summary>
     /// 各玩家造成的伤害具体信息
     /// </summary>
     public static Dictionary<string, Dictionary<string, int>> PlayerToDamagesourceDamages = new Dictionary<string, Dictionary<string, int>>();
@@ -100,9 +96,6 @@ public static class DamageCalcServer{
         if (MainSystem.ServerTick - EndTime > MAX_WAIT_TIME) return true;
         
         if (PlayersDamaged.FindIndex(p => !PlayersAllDamageDataReceived.Contains(p)) != -1) return false;
-
-        if (PlayersDamaged.FindIndex(p => !PlayerTotalDamageReceived.Contains(p)) != -1) return false;
-
         return true;
     }
 
@@ -158,7 +151,7 @@ public static class DamageCalcServer{
                         
                         KiLogger.LogOnMutiMode(
                             $"{rank} {name}: {damage} | {itemPercentage:F1}%", 
-                            Color.Red, 
+                            rankColor, 
                             logCodePosition: false, 
                             logServerTick: false, 
                             logPlatform: false
@@ -167,41 +160,6 @@ public static class DamageCalcServer{
             }
         }
         KiLogger.LogOnMutiMode("==========================",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-    }
-
-    private static string FormatBattleTime(TimeSpan duration)
-    {
-        int hours = duration.Hours;
-        int minutes = duration.Minutes;
-        int seconds = duration.Seconds;
-
-        string language = DecideLanguage();
-        bool isChinese = language.StartsWith("zh");
-
-        if (isChinese)
-        {
-            List<string> parts = new List<string>();
-            if (hours > 0)
-                parts.Add($"{hours}小时");
-            if (minutes > 0 || (hours > 0 && seconds > 0))
-                parts.Add($"{minutes}分");
-            if (seconds > 0 || parts.Count == 0)
-                parts.Add($"{seconds}秒");
-                
-            return string.Join("", parts);
-        }
-        else
-        {
-            List<string> parts = new List<string>();
-            if (hours > 0)
-                parts.Add($"{hours}h");
-            if (minutes > 0 || (hours > 0 && seconds > 0))
-                parts.Add($"{minutes}min");
-            if (seconds > 0 || parts.Count == 0)
-                parts.Add($"{seconds}s");
-                
-            return string.Join("", parts);
-        }
     }
 
     private static string DecideLanguage()
@@ -235,20 +193,6 @@ public static class DamageCalcServer{
     }
     
     #region 同步
-    /// <summary>
-    /// 接收玩家造成的总伤害
-    /// </summary>
-    /// <param name="totalDamage"></param>
-    /// <param name="playerName"></param>
-    public static void ReceiveTotalDamageFromClient(BinaryReader reader)
-    {
-        int totalDamage = reader.ReadInt32();
-        string playerName = reader.ReadString();
-
-        PlayerTotalDamageReceived.Add(playerName);
-
-        PlayerToTotalDamage[playerName] = totalDamage;
-    }
 
     /// <summary>
     /// 通知客户端开始记录，避免某些情况下客户端应当开始记录但未开始记录的情况
@@ -296,6 +240,7 @@ public static class DamageCalcServer{
 
         if (PlayersDamaged.Contains(playerName))
         {
+            PlayerToTotalDamage[playerName] = reader.ReadInt32();
             PlayerToDamagesourceDamages[playerName] = new Dictionary<string, int>();
             int count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
@@ -372,7 +317,6 @@ public static class DamageCalcClient
 
         SendAllDamageDataToServer();
         SendClinetLanguageToServer();
-        SendTotalDamageToServer(LocalTotalDamage, Main.LocalPlayer.name);
 
         started = false;
         LocalTotalDamage = 0;
@@ -393,22 +337,6 @@ public static class DamageCalcClient
     }
     
     #region 同步
-    /// <summary>
-    /// 同步客户端玩家造成的总伤害
-    /// </summary>
-    /// <param name="totalDamage"></param>
-    /// <param name="playerName"></param>
-    public static void SendTotalDamageToServer(int totalDamage, string playerName)
-    {
-        if (Main.dedServ) return;
-
-        ModPacket packet = ThisMod.GetPacket();
-        packet.Write((byte)NetMessageType.DamageCalc);
-        packet.Write(totalDamage);
-        packet.Write(playerName);
-        packet.Send();
-    }
-
     /// <summary>
     /// 使客户端开始记录，避免某些情况下客户端应当开始记录但未开始记录的情况
     /// </summary>
@@ -459,6 +387,7 @@ public static class DamageCalcClient
 
         if (Damaged)
         {
+            packet.Write(LocalTotalDamage);
             packet.Write(DamagesourceToTotalDamage.Count);
             foreach (var pair in DamagesourceToTotalDamage)
             {
@@ -575,41 +504,6 @@ public static class DamageCalcSinglePlayer
             );
         }
         KiLogger.LogOnMutiMode("==========================",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-    }
-
-    private static string FormatBattleTime(TimeSpan duration)
-    {
-        int hours = duration.Hours;
-        int minutes = duration.Minutes;
-        int seconds = duration.Seconds;
-
-        string language = LanguageManager.Instance.ActiveCulture.Name;
-        bool isChinese = language.StartsWith("zh");
-
-        if (isChinese)
-        {
-            List<string> parts = new List<string>();
-            if (hours > 0)
-                parts.Add($"{hours}小时");
-            if (minutes > 0 || (hours > 0 && seconds > 0))
-                parts.Add($"{minutes}分");
-            if (seconds > 0 || parts.Count == 0)
-                parts.Add($"{seconds}秒");
-                
-            return string.Join("", parts);
-        }
-        else
-        {
-            List<string> parts = new List<string>();
-            if (hours > 0)
-                parts.Add($"{hours}h");
-            if (minutes > 0 || (hours > 0 && seconds > 0))
-                parts.Add($"{minutes}min");
-            if (seconds > 0 || parts.Count == 0)
-                parts.Add($"{seconds}s");
-                
-            return string.Join("", parts);
-        }
     }
 }
 #endregion

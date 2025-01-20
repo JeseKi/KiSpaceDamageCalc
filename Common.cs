@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
@@ -49,6 +51,41 @@ public static class Common
         else if (Main.netMode.Equals(KiNetmodeID.SinglePlayer))
         {
             DamageCalcSinglePlayer.AddDamage(damage, item);
+        }
+    }
+
+    public static string FormatBattleTime(TimeSpan duration)
+    {
+        int hours = duration.Hours;
+        int minutes = duration.Minutes;
+        int seconds = duration.Seconds;
+
+        string language = LanguageManager.Instance.ActiveCulture.Name;
+        bool isChinese = language.StartsWith("zh");
+
+        if (isChinese)
+        {
+            List<string> parts = new List<string>();
+            if (hours > 0)
+                parts.Add($"{hours}小时");
+            if (minutes > 0 || (hours > 0 && seconds > 0))
+                parts.Add($"{minutes}分");
+            if (seconds > 0 || parts.Count == 0)
+                parts.Add($"{seconds}秒");
+                
+            return string.Join("", parts);
+        }
+        else
+        {
+            List<string> parts = new List<string>();
+            if (hours > 0)
+                parts.Add($"{hours}h");
+            if (minutes > 0 || (hours > 0 && seconds > 0))
+                parts.Add($"{minutes}min");
+            if (seconds > 0 || parts.Count == 0)
+                parts.Add($"{seconds}s");
+                
+            return string.Join("", parts);
         }
     }
 
