@@ -23,29 +23,21 @@ public static class DamageCalcServer{
     /// </summary>
     public static Dictionary<string, int> PlayerToTotalDamage = new Dictionary<string, int>();
     /// <summary>
-    /// 造成过投射物伤害的玩家
+    /// 造成过伤害的玩家
     /// </summary>
-    public static List<string> PlayersProjDamaged = new List<string>();
+    public static List<string> PlayersDamaged = new List<string>();
     /// <summary>
-    /// 各玩家造成了投射物伤害后，结束战斗时是否收到了该玩家的数据
+    /// 各玩家造成了伤害后，结束战斗时是否收到了该玩家的全部伤害数据
     /// </summary>
-    public static List<string> PlayerToProjDamageReceived = new List<string>();
+    public static List<string> PlayersAllDamageDataReceived = new List<string>();
     /// <summary>
-    /// 各玩家造成的投射物伤害具体信息
+    /// 各玩家造成的总伤害是否已经收到
     /// </summary>
-    public static Dictionary<string, Dictionary<string, int>> PlayerToProjDamage = new Dictionary<string, Dictionary<string, int>>();
+    public static List<string> PlayerTotalDamageReceived = new List<string>();
     /// <summary>
-    /// 造成过道具伤害的玩家
+    /// 各玩家造成的伤害具体信息
     /// </summary>
-    public static List<string> PlayersItemDamaged = new List<string>();
-    /// <summary>
-    /// 各玩家造成了道具伤害后，结束战斗时是否收到了该玩家的数据
-    /// </summary>
-    public static List<string> PlayerToItemDamageReceived = new List<string>();
-    /// <summary>
-    /// 各玩家造成的道具伤害具体信息
-    /// </summary>
-    public static Dictionary<string, Dictionary<string, int>> PlayerToItemDamage = new Dictionary<string, Dictionary<string, int>>();
+    public static Dictionary<string, Dictionary<string, int>> PlayerToDamagesourceDamages = new Dictionary<string, Dictionary<string, int>>();
     public static void Start(){
         if (started || !Main.dedServ)
             return;
@@ -90,23 +82,19 @@ public static class DamageCalcServer{
         PlayerCurrentLanguages.Clear();
         
         PlayerToTotalDamage.Clear();
-        
-        PlayersProjDamaged.Clear();
-        PlayerToProjDamageReceived.Clear();
-        PlayerToProjDamage.Clear();
 
-        PlayersItemDamaged.Clear();
-        PlayerToItemDamageReceived.Clear();
-        PlayerToItemDamage.Clear();
+        PlayersDamaged.Clear();
+        PlayersAllDamageDataReceived.Clear();
+        PlayerToDamagesourceDamages.Clear();
         
     }
 
     public static bool NeedBroadcast(){
         if (MainSystem.ServerTick - EndTime > MAX_WAIT_TIME) return true;
         
-        if (PlayersItemDamaged.FindIndex(p => !PlayerToItemDamageReceived.Contains(p)) != -1) return false;
+        if (PlayersDamaged.FindIndex(p => !PlayersAllDamageDataReceived.Contains(p)) != -1) return false;
 
-        if (PlayersProjDamaged.FindIndex(p => !PlayerToProjDamageReceived.Contains(p)) != -1) return false;
+        if (PlayersDamaged.FindIndex(p => !PlayerTotalDamageReceived.Contains(p)) != -1) return false;
 
         return true;
     }
@@ -134,7 +122,6 @@ public static class DamageCalcServer{
         KiLogger.LogOnMutiMode($"========== {MainSystem.GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{MainSystem.GetKiSpaceDamageCalcText("TotalTeamDamage")}: {AllPlayersTotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         
-        // 显示玩家排名
         for (int i = 0; i < playerTotalDamages.Count; i++)
         {
             var player = playerTotalDamages[i];
@@ -144,21 +131,19 @@ public static class DamageCalcServer{
             string playerRank = $"{player.Key}: {player.Value} | {damagePercentage:F1}%";
             KiLogger.LogOnMutiMode(playerRank, color: rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
             
-            if (PlayerToProjDamage.TryGetValue(player.Key, out var projDamages))
+            if (PlayerToDamagesourceDamages.TryGetValue(player.Key, out var itemDamages))
             {
-                foreach (var proj in projDamages)
+                var sortedDamages = itemDamages
+                    .OrderByDescending(x => x.Value)
+                    .ToList();
+                
+                for (int j = 0; j < sortedDamages.Count; j++)
                 {
-                    float projPercentage = (float)proj.Value / player.Value * 100;
-                    KiLogger.LogOnMutiMode($"    {proj.Key}: {proj.Value} | {projPercentage:F1}%",rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
-                }
-            }
-            
-            if (PlayerToItemDamage.TryGetValue(player.Key, out var itemDamages))
-            {
-                foreach (var item in itemDamages)
-                {
+                    var item = sortedDamages[j];
                     float itemPercentage = (float)item.Value / player.Value * 100;
-                    KiLogger.LogOnMutiMode($"    {item.Key}: {item.Value} | {itemPercentage:F1}%",rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
+                    string rank = $"#{j + 1}";
+                    KiLogger.LogOnMutiMode($"    {rank} {item.Key}: {item.Value} | {itemPercentage:F1}%", 
+                        rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
                 }
             }
         }
@@ -202,10 +187,12 @@ public static class DamageCalcServer{
     /// </summary>
     /// <param name="totalDamage"></param>
     /// <param name="playerName"></param>
-    public static void ReceiveDamageFromClient(BinaryReader reader)
+    public static void ReceiveTotalDamageFromClient(BinaryReader reader)
     {
         int totalDamage = reader.ReadInt32();
         string playerName = reader.ReadString();
+
+        PlayerTotalDamageReceived.Add(playerName);
 
         PlayerToTotalDamage[playerName] = totalDamage;
     }
@@ -239,13 +226,10 @@ public static class DamageCalcServer{
     public static void ReceivePlayerDamaged(BinaryReader reader)
     {
         string playerName = reader.ReadString();
-        bool projDamaged = reader.ReadBoolean();
         bool itemDamaged = reader.ReadBoolean();
 
-        if (projDamaged && !PlayersProjDamaged.Contains(playerName))
-            PlayersProjDamaged.Add(playerName);
-        if (itemDamaged && !PlayersItemDamaged.Contains(playerName))
-            PlayersItemDamaged.Add(playerName);
+        if (itemDamaged && !PlayersDamaged.Contains(playerName))
+            PlayersDamaged.Add(playerName);
     }
 
     /// <summary>
@@ -255,30 +239,17 @@ public static class DamageCalcServer{
     public static void ReceiveAllDamageDataFromClient(BinaryReader reader)
     {
         string playerName = reader.ReadString();
-        PlayerToItemDamageReceived.Add(playerName);
-        PlayerToProjDamageReceived.Add(playerName);
+        PlayersAllDamageDataReceived.Add(playerName);
 
-        if (PlayersProjDamaged.Contains(playerName))
+        if (PlayersDamaged.Contains(playerName))
         {
-            PlayerToProjDamage[playerName] = new Dictionary<string, int>();
-            int count = reader.ReadInt32();
-            for (int i = 0; i < count; i++)
-            {
-                string projName = reader.ReadString();
-                int damage = reader.ReadInt32();
-                PlayerToProjDamage[playerName][projName] = damage;
-            }
-        }
-
-        if (PlayersItemDamaged.Contains(playerName))
-        {
-            PlayerToItemDamage[playerName] = new Dictionary<string, int>();
+            PlayerToDamagesourceDamages[playerName] = new Dictionary<string, int>();
             int count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 string itemName = reader.ReadString();
                 int damage = reader.ReadInt32();
-                PlayerToItemDamage[playerName][itemName] = damage;
+                PlayerToDamagesourceDamages[playerName][itemName] = damage;
             }
         }
     }
@@ -298,12 +269,9 @@ public static class DamageCalcServer{
 public static class DamageCalcClient
 {
     public static int LocalTotalDamage = 0;
-    public static Dictionary<string, int> ProjToTotalDamage = new Dictionary<string, int>();
-    public static Dictionary<string, int> ItemToTotalDamage = new Dictionary<string, int>();
-    public static bool oldProjDamaged = false;
-    public static bool ProjDamaged = false;
-    public static bool oldItemDamaged = false;
-    public static bool ItemDamaged = false;
+    public static Dictionary<string, int> DamagesourceToTotalDamage = new Dictionary<string, int>();
+    public static bool oldDamaged = false;
+    public static bool Damaged = false;
     public static bool started = false;
 
     public static void AddDamage(int damage){
@@ -317,12 +285,12 @@ public static class DamageCalcClient
         if (!started || Main.dedServ)
             return;
 
-        if (!ProjToTotalDamage.ContainsKey(proj.Name))
-            ProjToTotalDamage[proj.Name] = 0;
+        if (!DamagesourceToTotalDamage.ContainsKey(proj.Name))
+            DamagesourceToTotalDamage[proj.Name] = 0;
         
-        ProjToTotalDamage[proj.Name] += damage;
+        DamagesourceToTotalDamage[proj.Name] += damage;
         
-        ProjDamaged = true;
+        Damaged = true;
         AddDamage(damage);
     }
 
@@ -330,12 +298,12 @@ public static class DamageCalcClient
         if (!started || Main.dedServ)
             return;
 
-        if (!ItemToTotalDamage.ContainsKey(item.Name))
-            ItemToTotalDamage[item.Name] = 0;
+        if (!DamagesourceToTotalDamage.ContainsKey(item.Name))
+            DamagesourceToTotalDamage[item.Name] = 0;
         
-        ItemToTotalDamage[item.Name] += damage;
+        DamagesourceToTotalDamage[item.Name] += damage;
         
-        ItemDamaged = true;
+        Damaged = true;
         AddDamage(damage);
     }
 
@@ -349,29 +317,25 @@ public static class DamageCalcClient
     public static void Reset(){
         if (Main.dedServ) return;
 
+        SendAllDamageDataToServer();
         SendClinetLanguageToServer();
         SendTotalDamageToServer(LocalTotalDamage, Main.LocalPlayer.name);
-        SendAllDamageDataToServer();
 
         started = false;
         LocalTotalDamage = 0;
-        ProjToTotalDamage.Clear();
-        ItemToTotalDamage.Clear();
-        oldItemDamaged = false;
-        ItemDamaged = false;
-        oldProjDamaged = false;
-        ProjDamaged = false;
+        DamagesourceToTotalDamage.Clear();
+        oldDamaged = false;
+        Damaged = false;
         return;
     }
 
     public static void CheckDamaged(){
         if (Main.dedServ) return;
         
-        if (oldItemDamaged != ItemDamaged || oldProjDamaged != ProjDamaged)
+        if (oldDamaged != Damaged)
         {
             SendDamagedToServer();
-            oldItemDamaged = ItemDamaged;
-            oldProjDamaged = ProjDamaged;
+            oldDamaged = Damaged;
         }
     }
     
@@ -383,6 +347,8 @@ public static class DamageCalcClient
     /// <param name="playerName"></param>
     public static void SendTotalDamageToServer(int totalDamage, string playerName)
     {
+        if (Main.dedServ) return;
+
         ModPacket packet = ThisMod.GetPacket();
         packet.Write((byte)NetMessageType.DamageCalc);
         packet.Write(totalDamage);
@@ -395,6 +361,7 @@ public static class DamageCalcClient
     /// </summary>
     public static void ReceiveStartFromServer()
     {
+        if (Main.dedServ) return;
         Start();
     }
 
@@ -403,6 +370,7 @@ public static class DamageCalcClient
     /// </summary>
     public static void ReceiveEndFromServer()
     {
+        if (Main.dedServ) return;
         Reset();
     }
 
@@ -419,8 +387,7 @@ public static class DamageCalcClient
         ModPacket packet = ThisMod.GetPacket();
         packet.Write((byte)NetMessageType.PlayerDamaged);
         packet.Write(Main.LocalPlayer.name);
-        packet.Write(ProjDamaged);
-        packet.Write(ItemDamaged);
+        packet.Write(Damaged);
         
         packet.Send();
 
@@ -431,26 +398,16 @@ public static class DamageCalcClient
     /// </summary>
     public static void SendAllDamageDataToServer()
     {
-        if (!ItemDamaged && !ProjDamaged) return;
+        if (!Damaged || Main.dedServ) return;
 
         ModPacket packet = ThisMod.GetPacket();
         packet.Write((byte)NetMessageType.AllDamageData);
         packet.Write(Main.LocalPlayer.name);
 
-        if (ProjDamaged)
+        if (Damaged)
         {
-            packet.Write(ProjToTotalDamage.Count);
-            foreach (var pair in ProjToTotalDamage)
-            {
-                packet.Write(pair.Key);
-                packet.Write(pair.Value);
-            }
-        }
-
-        if (ItemDamaged)
-        {
-            packet.Write(ItemToTotalDamage.Count);
-            foreach (var pair in ItemToTotalDamage)
+            packet.Write(DamagesourceToTotalDamage.Count);
+            foreach (var pair in DamagesourceToTotalDamage)
             {
                 packet.Write(pair.Key);
                 packet.Write(pair.Value);
@@ -465,6 +422,8 @@ public static class DamageCalcClient
     /// </summary>
     public static void SendClinetLanguageToServer()
     {
+        if (Main.dedServ) return;
+
         ModPacket packet = ThisMod.GetPacket();
         packet.Write((byte)NetMessageType.ClientLanguage);
         packet.Write(LanguageManager.Instance.ActiveCulture.Name);

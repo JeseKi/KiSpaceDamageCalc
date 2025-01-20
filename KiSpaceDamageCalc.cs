@@ -35,7 +35,7 @@ namespace KiSpaceDamageCalc
 			switch (msgType)
 			{
 				case NetMessageType.DamageCalc:
-					DamageCalcServer.ReceiveDamageFromClient(reader);
+					DamageCalcServer.ReceiveTotalDamageFromClient(reader);
 					break;
 				case NetMessageType.ServerData:
 					MainSystem.HandelServerData(msgType, reader, false, out _);
