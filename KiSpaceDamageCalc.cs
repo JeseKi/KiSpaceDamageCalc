@@ -25,7 +25,8 @@ namespace KiSpaceDamageCalc
 			StartRecording = 2,
 			EndRecording = 3,
 			PlayerDamaged = 4,
-			AllDamageData = 5
+			AllDamageData = 5,
+			ClientLanguage = 6
         }
 
         public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -50,6 +51,9 @@ namespace KiSpaceDamageCalc
 					break;
 				case NetMessageType.AllDamageData:
 					DamageCalcServer.ReceiveAllDamageDataFromClient(reader);
+					break;
+				case NetMessageType.ClientLanguage:
+					DamageCalcServer.ReceiveClinetLanguageFromServer(reader);
 					break;
 			}
         }

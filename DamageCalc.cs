@@ -4,6 +4,7 @@ using System.Linq;
 using KiSpaceDamageCalc.Systems;
 using Microsoft.Xna.Framework;
 using Terraria;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using static KiSpaceDamageCalc.KiSpaceDamageCalc;
 
@@ -15,6 +16,8 @@ public static class DamageCalcServer{
     public static int EndTime = 0;
     public const int MAX_WAIT_TIME = 60;
     public static bool InReseting = false;
+    public static string CurrentLanguage;
+    public static List<string> PlayerCurrentLanguages = new List<string>();
     /// <summary>
     /// 各玩家造成的总伤害
     /// </summary>
@@ -44,10 +47,9 @@ public static class DamageCalcServer{
     /// </summary>
     public static Dictionary<string, Dictionary<string, int>> PlayerToItemDamage = new Dictionary<string, Dictionary<string, int>>();
     public static void Start(){
-        if (started)
+        if (started || !Main.dedServ)
             return;
 
-        // KiLogger.LogOnMutiMode("开始记录", logToFile: true);
         started = true;
 
         SendStartToClient();
@@ -60,7 +62,6 @@ public static class DamageCalcServer{
         InReseting = true;
         EndTime = MainSystem.ServerTick;
         SendEndToClient();
-        // KiLogger.LogOnMutiMode("开始重置", logToFile: true);
     }
 
     public static void UpdateReset()
@@ -86,6 +87,7 @@ public static class DamageCalcServer{
         AllPlayersTotalDamage = 0;
         EndTime = 0;
         started = false;
+        PlayerCurrentLanguages.Clear();
         
         PlayerToTotalDamage.Clear();
         
@@ -97,11 +99,9 @@ public static class DamageCalcServer{
         PlayerToItemDamageReceived.Clear();
         PlayerToItemDamage.Clear();
         
-        // KiLogger.LogOnMutiMode("重置完成", logToFile: true);
     }
 
     public static bool NeedBroadcast(){
-        // KiLogger.LogWithTimer("检测是否需要播报", logOnMutiMode: true,logToFile: true);
         if (MainSystem.ServerTick - EndTime > MAX_WAIT_TIME) return true;
         
         if (PlayersItemDamaged.FindIndex(p => !PlayerToItemDamageReceived.Contains(p)) != -1) return false;
@@ -123,10 +123,13 @@ public static class DamageCalcServer{
 
     private static void DisplayDamageStatistics()
     {
-        // 计算每个玩家的总伤害并排序
         var playerTotalDamages = PlayerToTotalDamage
             .OrderByDescending(p => p.Value)
             .ToList();
+        
+        string language = DecideLanguage();
+        if (language != LanguageManager.Instance.ActiveCulture.Name)
+            LanguageManager.Instance.SetLanguage(language);
         
         KiLogger.LogOnMutiMode($"========== {MainSystem.GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{MainSystem.GetKiSpaceDamageCalcText("TotalTeamDamage")}: {AllPlayersTotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
@@ -141,7 +144,6 @@ public static class DamageCalcServer{
             string playerRank = $"{player.Key}: {player.Value} | {damagePercentage:F1}%";
             KiLogger.LogOnMutiMode(playerRank, color: rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
             
-            // 显示该玩家的伤害来源详情
             if (PlayerToProjDamage.TryGetValue(player.Key, out var projDamages))
             {
                 foreach (var proj in projDamages)
@@ -163,6 +165,36 @@ public static class DamageCalcServer{
 
         KiLogger.LogOnMutiMode("==========================",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
     }
+
+    private static string DecideLanguage()
+    {
+        if (PlayerCurrentLanguages.Count == 0)
+            return "en-US";
+            
+        if (PlayerCurrentLanguages.Count == 1)
+            return PlayerCurrentLanguages[0];
+            
+        var languageCounts = PlayerCurrentLanguages
+            .GroupBy(x => x)
+            .Select(g => new { Language = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToList();
+            
+        int maxCount = languageCounts[0].Count;
+        
+        var mostUsedLanguages = languageCounts
+            .Where(x => x.Count == maxCount)
+            .Select(x => x.Language)
+            .ToList();
+            
+        if (mostUsedLanguages.Count == 1)
+            return mostUsedLanguages[0];
+            
+        if (mostUsedLanguages.Any(lang => lang.StartsWith("en")))
+            return mostUsedLanguages.First(lang => lang.StartsWith("en"));
+            
+        return mostUsedLanguages.OrderByDescending(x => x).First();
+    }
     
     #region 同步
     /// <summary>
@@ -175,7 +207,6 @@ public static class DamageCalcServer{
         int totalDamage = reader.ReadInt32();
         string playerName = reader.ReadString();
 
-        // KiLogger.LogOnMutiMode($"接收 - 总伤害值: [{totalDamage}],玩家: {playerName}", logToFile: true,reader: reader);
         PlayerToTotalDamage[playerName] = totalDamage;
     }
 
@@ -215,8 +246,6 @@ public static class DamageCalcServer{
             PlayersProjDamaged.Add(playerName);
         if (itemDamaged && !PlayersItemDamaged.Contains(playerName))
             PlayersItemDamaged.Add(playerName);
-
-        // KiLogger.LogOnMutiMode($"接收 - 玩家[{Main.LocalPlayer.name}]造成了伤害, 投射物伤害：{projDamaged}, 物品伤害：{itemDamaged}", reader: reader);
     }
 
     /// <summary>
@@ -252,8 +281,16 @@ public static class DamageCalcServer{
                 PlayerToItemDamage[playerName][itemName] = damage;
             }
         }
+    }
 
-        // KiLogger.LogOnMutiMode($"接收 - 玩家[{playerName}]的全部数据", reader: reader);
+    /// <summary>
+    /// 接收客户端语言
+    /// </summary>
+    /// <param name="reader"></param>
+    public static void ReceiveClinetLanguageFromServer(BinaryReader reader)
+    {
+        string language = reader.ReadString();
+        PlayerCurrentLanguages.Add(language);
     }
     #endregion
 }
@@ -274,8 +311,6 @@ public static class DamageCalcClient
             return;
 
         LocalTotalDamage += damage;
-
-        SendTotalDamageToServer(LocalTotalDamage, Main.LocalPlayer.name);
     }
 
     public static void AddDamage(int damage, Projectile proj){
@@ -308,13 +343,14 @@ public static class DamageCalcClient
         if (started || Main.dedServ)
             return;
 
-        // KiLogger.LogOnMutiMode("开始记录", logToFile: true);
         started = true;
     }
 
     public static void Reset(){
         if (Main.dedServ) return;
 
+        SendClinetLanguageToServer();
+        SendTotalDamageToServer(LocalTotalDamage, Main.LocalPlayer.name);
         SendAllDamageDataToServer();
 
         started = false;
@@ -336,8 +372,6 @@ public static class DamageCalcClient
             SendDamagedToServer();
             oldItemDamaged = ItemDamaged;
             oldProjDamaged = ProjDamaged;
-
-            KiLogger.LogOnMutiMode("");
         }
     }
     
@@ -353,7 +387,6 @@ public static class DamageCalcClient
         packet.Write((byte)NetMessageType.DamageCalc);
         packet.Write(totalDamage);
         packet.Write(playerName);
-        // KiLogger.LogOnMutiMode($"发送 - 总伤害值: [{totalDamage}],玩家: {playerName}", packet: packet, logToFile: true);
         packet.Send();
     }
 
@@ -389,7 +422,6 @@ public static class DamageCalcClient
         packet.Write(ProjDamaged);
         packet.Write(ItemDamaged);
         
-        // KiLogger.LogOnMutiMode($"发送 - 玩家[{Main.LocalPlayer.name}]造成了伤害, 投射物伤害：{ProjDamaged}, 物品伤害：{ItemDamaged}", packet: packet);
         packet.Send();
 
     }
@@ -399,7 +431,6 @@ public static class DamageCalcClient
     /// </summary>
     public static void SendAllDamageDataToServer()
     {
-        KiLogger.LogOnMutiMode("开始发送伤害数据", logToFile: true);
         if (!ItemDamaged && !ProjDamaged) return;
 
         ModPacket packet = ThisMod.GetPacket();
@@ -426,7 +457,17 @@ public static class DamageCalcClient
             }
         }
 
-        // KiLogger.LogOnMutiMode("发送 - 结束发送伤害数据", packet: packet);
+        packet.Send();
+    }
+
+    /// <summary>
+    /// 向服务端发送本地玩家的语言设置
+    /// </summary>
+    public static void SendClinetLanguageToServer()
+    {
+        ModPacket packet = ThisMod.GetPacket();
+        packet.Write((byte)NetMessageType.ClientLanguage);
+        packet.Write(LanguageManager.Instance.ActiveCulture.Name);
         packet.Send();
     }
     #endregion

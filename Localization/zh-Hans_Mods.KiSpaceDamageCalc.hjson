@@ -1,4 +1,2 @@
-Display: {
-    DamageStatistics: 伤害统计
-    TotalTeamDamage: 团队总伤害
-}
+DamageStatistics: 伤害统计
+TotalTeamDamage: 团队总伤害
