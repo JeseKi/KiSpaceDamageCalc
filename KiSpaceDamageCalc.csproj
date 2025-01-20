@@ -4,7 +4,6 @@
 	<Import Project="..\tModLoader.targets" />
 	<!-- General -->
 <PropertyGroup>
-    <PlatformTarget>x64</PlatformTarget>
 </PropertyGroup>
 <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
   <DebugType>portable</DebugType>

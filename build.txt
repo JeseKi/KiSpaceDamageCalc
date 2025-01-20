@@ -1,3 +1,5 @@
 displayName = Jese&Beta's Damage Calc Jese和Beta的伤害计算
 author = Jese__Ki
 version = 0.1
+homepage = https://github.com/JeseKi/KiSpaceDamageCalc
+includeSource = true
