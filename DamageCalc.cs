@@ -122,6 +122,7 @@ public static class DamageCalcServer{
         KiLogger.LogOnMutiMode($"========== {GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {AllPlayersTotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TeamAverageDPS")}: {(int)(AllPlayersTotalDamage / battleDuration.TotalSeconds)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         
         for (int i = 0; i < playerTotalDamages.Count; i++)
         {
@@ -131,6 +132,7 @@ public static class DamageCalcServer{
             
             string playerRank = $"{player.Key}: {player.Value} | {damagePercentage:F1}%";
             KiLogger.LogOnMutiMode(playerRank, color: rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
+            KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerAverageDPS", player.Key)}: {(int)(player.Value / battleDuration.TotalSeconds)}", rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
             
             if (PlayerToDamagesourceDamages.TryGetValue(player.Key, out var itemDamages))
             {
@@ -479,6 +481,7 @@ public static class DamageCalcSinglePlayer
         KiLogger.LogOnMutiMode($"========== {GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {TotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerAverageDPS", Main.LocalPlayer.name)}: {(int)(TotalDamage / battleDuration.TotalSeconds)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         
         var sortedDamages = DamagesourceDamages
             .OrderByDescending(x => x.Value)

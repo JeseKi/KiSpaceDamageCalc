@@ -1,3 +1,5 @@
 DamageStatistics: Damage Statistics
 TotalTeamDamage: Total Team Damage
 TimeText: Total Battle Time
+TeamAverageDPS: Team Average DPS
+PlayerAverageDPS: "{0}'s Average DPS"
