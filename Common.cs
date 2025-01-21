@@ -54,6 +54,18 @@ public static class Common
         }
     }
 
+    public static void AddHitTakenCount()
+    {
+        if (Main.netMode.Equals(KiNetmodeID.MultiplayerClient))
+        {
+            DamageCalcClient.AddHitTakenCount();
+        }
+        else if (Main.netMode.Equals(KiNetmodeID.SinglePlayer))
+        {
+            DamageCalcSinglePlayer.AddHitTakenCount();
+        }
+    }
+
     public static string FormatBattleTime(TimeSpan duration)
     {
         int hours = duration.Hours;

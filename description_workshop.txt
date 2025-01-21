@@ -5,9 +5,10 @@
 
 在BOSS战结束后，这个Mod会自动计算并展示以下数据：  
 
-* 伤害源排名：统计所有玩家的伤害来源（包括武器，召唤物，射弹等）的伤害贡献排名。  
-* 玩家伤害排名：统计所有玩家的总伤害贡献排名。  
-* 战斗时长：你/你们在这场BOSS战中跟BOSS打了多久。  
+*伤害源排名：统计所有玩家的伤害来源（包括武器，召唤物，射弹等）的伤害贡献排名。  
+*玩家伤害排名：统计所有玩家的总伤害贡献排名。  
+*战斗时长：你/你们在这场BOSS战中跟BOSS打了多久。  
+*平均每秒伤害：这场战斗中你/你们每秒对BOSS造成的伤害的平均值。
 
 [b]支持本地[/b] ✅
 [b]支持多人[/b] ✅
@@ -28,9 +29,10 @@ Inspiration Sources:
 After a boss fight, this mod will automatically calculate and display the following data:  
 
 
-* Damage Source Ranking: Tracks the damage contribution of all damage sources (including weapons, minions, projectiles, etc.) used by players.  
-* Player Damage Ranking: Ranks the total damage contribution of all players.  
-* Fight Duration: How long you/your team fought the boss.  
+*Damage Source Ranking: Tracks the damage contribution of all damage sources (including weapons, minions, projectiles, etc.) used by players.  
+*Player Damage Ranking: Ranks the total damage contribution of all players.  
+*Fight Duration: How long you/your team fought the boss.  
+*Average DPS: The average damage dealt per second by you/your team during the fight.  
 
 [b]Supports Single Player[/b] ✅  
 [b]Supports Multiplayer[/b] ✅  

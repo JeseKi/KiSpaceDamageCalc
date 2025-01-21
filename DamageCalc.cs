@@ -12,6 +12,7 @@ using static KiSpaceDamageCalc.KiSpaceDamageCalc;
 
 namespace KiSpaceDamageCalc;
 
+#region 服务端伤害统计
 public static class DamageCalcServer{
     public static int AllPlayersTotalDamage = 0;
     public static bool started = false;
@@ -22,6 +23,7 @@ public static class DamageCalcServer{
     public static bool InReseting = false;
     public static string CurrentLanguage;
     public static List<string> PlayerCurrentLanguages = new List<string>();
+    public static Dictionary<string, int> PlayerToHitTakenCounts = new Dictionary<string, int>();
     /// <summary>
     /// 各玩家造成的总伤害
     /// </summary>
@@ -84,6 +86,7 @@ public static class DamageCalcServer{
         battleDuration = TimeSpan.Zero;
         started = false;
         PlayerCurrentLanguages.Clear();
+        PlayerToHitTakenCounts.Clear();
         
         PlayerToTotalDamage.Clear();
 
@@ -133,6 +136,7 @@ public static class DamageCalcServer{
             string playerRank = $"{player.Key}: {player.Value} | {damagePercentage:F1}%";
             KiLogger.LogOnMutiMode(playerRank, color: rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
             KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerAverageDPS", player.Key)}: {(int)(player.Value / battleDuration.TotalSeconds)}", rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
+            KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerHitTakenCount", player.Key)}: {PlayerToHitTakenCounts[player.Key]}", rankColor, logCodePosition: false, logServerTick: false, logPlatform: false);
             
             if (PlayerToDamagesourceDamages.TryGetValue(player.Key, out var itemDamages))
             {
@@ -232,7 +236,7 @@ public static class DamageCalcServer{
     }
 
     /// <summary>
-    /// 接收记录玩家造成的伤害
+    /// 接收记录玩家造成的伤害和玩家的受击次数
     /// </summary>
     /// <param name="reader"></param>
     public static void ReceiveAllDamageDataFromClient(BinaryReader reader)
@@ -242,6 +246,7 @@ public static class DamageCalcServer{
 
         if (PlayersDamaged.Contains(playerName))
         {
+            PlayerToHitTakenCounts[playerName] = reader.ReadInt32();
             PlayerToTotalDamage[playerName] = reader.ReadInt32();
             PlayerToDamagesourceDamages[playerName] = new Dictionary<string, int>();
             int count = reader.ReadInt32();
@@ -264,12 +269,15 @@ public static class DamageCalcServer{
         PlayerCurrentLanguages.Add(language);
     }
     #endregion
+    #endregion
 }
 
+#region 客户端伤害统计
 public static class DamageCalcClient
 {
     public static int LocalTotalDamage = 0;
     public static Dictionary<string, int> DamagesourceToTotalDamage = new Dictionary<string, int>();
+    public static int HitTakenCount = 0;
     public static bool oldDamaged = false;
     public static bool Damaged = false;
     public static bool started = false;
@@ -307,6 +315,13 @@ public static class DamageCalcClient
         AddDamage(damage);
     }
 
+    public static void AddHitTakenCount(){
+        if (!started || Main.dedServ)
+            return;
+
+        HitTakenCount++;
+    }
+
     public static void Start(){
         if (started || Main.dedServ)
             return;
@@ -317,11 +332,12 @@ public static class DamageCalcClient
     public static void Reset(){
         if (Main.dedServ) return;
 
-        SendAllDamageDataToServer();
         SendClinetLanguageToServer();
+        SendAllDamageDataToServer();
 
         started = false;
         LocalTotalDamage = 0;
+        HitTakenCount=0;
         DamagesourceToTotalDamage.Clear();
         oldDamaged = false;
         Damaged = false;
@@ -377,7 +393,7 @@ public static class DamageCalcClient
     }
 
     /// <summary>
-    /// 发送本地玩家所有伤害数据到服务端
+    /// 发送本地玩家所有伤害数据和受击次数到服务端
     /// </summary>
     public static void SendAllDamageDataToServer()
     {
@@ -389,6 +405,7 @@ public static class DamageCalcClient
 
         if (Damaged)
         {
+            packet.Write(HitTakenCount);
             packet.Write(LocalTotalDamage);
             packet.Write(DamagesourceToTotalDamage.Count);
             foreach (var pair in DamagesourceToTotalDamage)
@@ -414,11 +431,14 @@ public static class DamageCalcClient
         packet.Send();
     }
     #endregion
+    #endregion
 }
+
 #region 单人的伤害统计
 public static class DamageCalcSinglePlayer
 {
     public static int TotalDamage = 0;
+    public static int HitTakenCount = 0;
     public static bool started = false;
     public static DateTime StartTime;
     public static TimeSpan battleDuration;
@@ -463,6 +483,13 @@ public static class DamageCalcSinglePlayer
         
         AddDamage(damage);
     }
+
+    public static void AddHitTakenCount(){
+        if (!started || Main.dedServ)
+            return;
+
+        HitTakenCount++;
+    }
     public static void Reset(){
 
         if (!Main.netMode.Equals(KiNetmodeID.SinglePlayer) || !started) return;
@@ -470,6 +497,7 @@ public static class DamageCalcSinglePlayer
         DisplayDamageStatistics();
         
         TotalDamage = 0;
+        HitTakenCount = 0;
         StartTime = DateTime.Now;
         battleDuration = TimeSpan.Zero;
         started = false;
@@ -482,6 +510,7 @@ public static class DamageCalcSinglePlayer
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {TotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerAverageDPS", Main.LocalPlayer.name)}: {(int)(TotalDamage / battleDuration.TotalSeconds)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("LocalHitTakenCount")}: {HitTakenCount}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
         
         var sortedDamages = DamagesourceDamages
             .OrderByDescending(x => x.Value)

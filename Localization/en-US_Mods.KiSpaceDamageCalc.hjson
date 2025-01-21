@@ -3,3 +3,5 @@ TotalTeamDamage: Total Team Damage
 TimeText: Total Battle Time
 TeamAverageDPS: Team Average DPS
 PlayerAverageDPS: "{0}'s Average DPS"
+PlayerHitTakenCount: "{0}'s Hit Taken Count"
+LocalHitTakenCount: Hit Taken Count

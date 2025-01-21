@@ -3,3 +3,5 @@ TotalTeamDamage: 团队总伤害
 TimeText: 战斗时长
 TeamAverageDPS: 团队平均每秒伤害
 PlayerAverageDPS: "{0}的平均每秒伤害"
+PlayerHitTakenCount: "{0}的受击次数"
+LocalHitTakenCount: 受击次数
