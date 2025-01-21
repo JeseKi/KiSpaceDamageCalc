@@ -143,8 +143,11 @@ public static class DamageCalcServer{
                 var sortedDamages = itemDamages
                     .OrderByDescending(x => x.Value)
                     .ToList();
-                
-                    int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
+                    if (!sortedDamages.Any())
+                    {
+                        continue;
+                    }
+                int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
                     int maxDamageLength = sortedDamages.Max(x => x.Value.ToString().Length);
 
                     for (int j = 0; j < sortedDamages.Count; j++)
@@ -491,7 +494,6 @@ public static class DamageCalcSinglePlayer
         HitTakenCount++;
     }
     public static void Reset(){
-
         if (!Main.netMode.Equals(KiNetmodeID.SinglePlayer) || !started) return;
         battleDuration = DateTime.Now - StartTime;
         DisplayDamageStatistics();
@@ -515,7 +517,11 @@ public static class DamageCalcSinglePlayer
         var sortedDamages = DamagesourceDamages
             .OrderByDescending(x => x.Value)
             .ToList();
-        
+
+        if (!sortedDamages.Any())
+        {
+            return;
+        }
         int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
         int maxDamageLength = sortedDamages.Max(x => x.Value.ToString().Length);
 
