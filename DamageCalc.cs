@@ -118,6 +118,8 @@ public static class DamageCalcServer{
             .OrderByDescending(p => p.Value)
             .ToList();
         
+        if (!playerTotalDamages.Any()) return;
+
         string language = DecideLanguage();
         if (language != LanguageManager.Instance.ActiveCulture.Name)
             LanguageManager.Instance.SetLanguage(language);
@@ -143,10 +145,12 @@ public static class DamageCalcServer{
                 var sortedDamages = itemDamages
                     .OrderByDescending(x => x.Value)
                     .ToList();
-                    if (!sortedDamages.Any())
-                    {
-                        continue;
-                    }
+                    
+                if (!sortedDamages.Any())
+                {
+                    continue;
+                }
+
                 int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
                     int maxDamageLength = sortedDamages.Max(x => x.Value.ToString().Length);
 
@@ -507,13 +511,7 @@ public static class DamageCalcSinglePlayer
     }
 
     private static void DisplayDamageStatistics()
-    {        
-        KiLogger.LogOnMutiMode($"========== {GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {TotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerAverageDPS", Main.LocalPlayer.name)}: {(int)(TotalDamage / battleDuration.TotalSeconds)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("LocalHitTakenCount")}: {HitTakenCount}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
-        
+    {                
         var sortedDamages = DamagesourceDamages
             .OrderByDescending(x => x.Value)
             .ToList();
@@ -522,6 +520,13 @@ public static class DamageCalcSinglePlayer
         {
             return;
         }
+
+        KiLogger.LogOnMutiMode($"========== {GetKiSpaceDamageCalcText("DamageStatistics")} ==========",Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TotalTeamDamage")}: {TotalDamage}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("TimeText")}: {FormatBattleTime(battleDuration)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("PlayerAverageDPS", Main.LocalPlayer.name)}: {(int)(TotalDamage / battleDuration.TotalSeconds)}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+        KiLogger.LogOnMutiMode($"{GetKiSpaceDamageCalcText("LocalHitTakenCount")}: {HitTakenCount}", Color.Purple, logCodePosition: false, logServerTick: false, logPlatform: false);
+
         int maxNameWidth = sortedDamages.Max(x => GetDisplayLength(x.Key));
         int maxDamageLength = sortedDamages.Max(x => x.Value.ToString().Length);
 
