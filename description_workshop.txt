@@ -9,6 +9,7 @@
 *玩家伤害排名：统计所有玩家的总伤害贡献排名。  
 *战斗时长：你/你们在这场BOSS战中跟BOSS打了多久。  
 *平均每秒伤害：这场战斗中你/你们每秒对BOSS造成的伤害的平均值。
+*受击次数：你/你们在这场BOSS战中挨打了多少次，包括被免疫或闪避的伤害也会被算进其中。
 
 [b]支持本地[/b] ✅
 [b]支持多人[/b] ✅
@@ -33,6 +34,7 @@ After a boss fight, this mod will automatically calculate and display the follow
 *Player Damage Ranking: Ranks the total damage contribution of all players.  
 *Fight Duration: How long you/your team fought the boss.  
 *Average DPS: The average damage dealt per second by you/your team during the fight.  
+*Hit Taken Count: How many times you/your team has been hit by the boss during the fight, including immune or evaded damage.  
 
 [b]Supports Single Player[/b] ✅  
 [b]Supports Multiplayer[/b] ✅  
