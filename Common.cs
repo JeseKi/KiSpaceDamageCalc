@@ -21,7 +21,7 @@ public static class Common
     public static bool PlayerInBossBattle()
     {
         foreach (NPC npc in Main.npc) {
-            if ((npc.active && npc.boss) || npc.type == NPCID.EaterofWorldsHead) {
+            if (npc.active && (npc.boss || npc.type == NPCID.EaterofWorldsHead || npc.type == NPCID.EaterofWorldsBody || npc.type == NPCID.EaterofWorldsTail)) {
                 return true;
             }
         }
